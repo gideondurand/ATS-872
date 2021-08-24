@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.15.1
+# v0.14.1
 
 using Markdown
 using InteractiveUtils
@@ -113,6 +113,15 @@ function compute_pi_naive(n::Int)
 	return n_landed_in_circle / n * 4.0
 end		
 
+# ╔═╡ 8330bede-028b-4c29-909c-6ed3244a0133
+md"""
+In this section we will have some fun trying to approximate $\pi$ using Monte Carlo methods. We will compare the speed of computation between Julia and R for this example.   
+ 
+"""
+
+# ╔═╡ b4f15335-7a6c-4814-9007-77f69d79d39d
+compute_pi_naive(1000000)
+
 # ╔═╡ 59df263a-a284-40b2-8d9d-bb34fbf13b3a
 # Similar code to first instance above 
 R"mc_pi_loop <- function(n){
@@ -178,7 +187,7 @@ end
 R"system.time(a <- mc_piv(1000000))" # This is why we are advised against loops in R...
 
 # ╔═╡ 9d1a94ac-7ca2-4c8c-a801-021fd2cfc90e
-md" So we have managed to find an approximation for $\pi$. Let us look at some other methods and also draw some nice graphs in the process to better explain what is going on. Our code above is optimised to a certain extent. However, when writing code, do not worry too much about optimisation. You can always go back to code to optimise. Try and write code that makes sense to you before you expirment with optimisation.  "
+md" So we have managed to find an approximation for $\pi$. Let us look at some other methods and also draw some nice graphs in the process to better explain what is going on. Our code above is optimised to a certain extent. However, when writing code, do not worry too much about optimisation. You can always go back to code to optimise. Try and write code that makes sense to you before you experiment with optimisation.  "
 
 # ╔═╡ 880792b2-02b7-444e-a787-d02ee685ee72
 md"""
@@ -226,7 +235,7 @@ md" ## Gaussian (Normal) "
 md"""
 This is a distribution that we will be dealing with a lot in the course, so it is worthwhile getting used to its functional form and different properties. It appears almost everywhere! 
 
-The central limit theorem helps justify our usage of the normal distribution. Important authors responsible for development of this theorem include De Moivre, Laplace, Gauss, Chebysev, Liapounov and Markov. Given certain conditions the sum (and mean) of independent random variables approach a Gaussian distribution as $n \rightarrow \infty$ even if original variables are not normally distributed.
+The central limit theorem helps justify our usage of the normal distribution. Important authors responsible for development of this theorem include De Moivre, Laplace, Gauss, Chebysev, Liapounov and Markov. Given certain conditions, an appropriately scaled version of the mean (and sum!) of independent random variables approach a Gaussian distribution as $n \rightarrow \infty$ even if original variables are not normally distributed.
 
 There are some problems
 
@@ -241,24 +250,23 @@ md" ### Gaussian model with known $\sigma^2$ "
 
 # ╔═╡ 8ffaa0dc-36f8-49da-9742-74db90c6d5a8
 md""" 
+[GdR: the previous version was a bit confusing - check this suggested reordering. The notation also jumps a bit much, even though they should get used to some of that. I made some suggestions here as well]
 
-**Note**: As we have mentioned, we start with a single parameter model. The parameter of interest for this model is the mean, which we will refer to as $\theta$. We could have named it $\mu$, but that can create confusion as to whether the quantity is known or not. We know $\sigma^{2}$ but are looking for information on $\theta$ so that we can build our posterior, $p(\theta | y)$. In other books you might see the same calculations, but with $\mu$ instead of $\theta$. We will only do this for the first example, so that you can get comfortable with the math. 
+In this section, we build the machinery to obtain a Bayesian estimate of the unknown mean of a random variable that is known to be normally distributed with (known) variance $\sigma^2$.This single parameter problem is nice and simple to start with. 
 
-To illustrate the basic mechanics of Bayesian analysis, we start with a toy example. Suppose we take $N$ independent measurements $y_{1}, \ldots, y_{N}$ of an unknown quantity $\theta$, where the magnitude of measurement error is known. In addition, from a small pilot study $\theta$ is estimated to be about $\mu_{0}$. 
+The parameter of interest for this model is the mean, which we will refer to as $\theta$. We could have named it $\mu$, but that can create confusion as to whether the quantity is known or not. We know $\sigma^{2}$ but are looking for information on $\theta$ so that we can build our posterior, $p(\theta | y)$. In other books you might see the same calculations, but with $\mu$ instead of $\theta$. We will only do this for the first example, so that you can get comfortable with the math. 
 
-Our goal is to obtain the posterior distribution $p(\theta \mid {y})$ given the sample ${y}=$ $\left(y_{1}, \ldots, y_{N}\right)^{\prime} .$ To that end, we need two ingredients: a likelihood function and a prior for the parameter $\theta$.
+Suppose we have a sample of $N$ independent measurements $y_{1}, \ldots, y_{N}$ of this random variable.   Our goal is to obtain the posterior distribution $p(\theta \mid {y})$, i.e. the best Bayesian estimate of the probable location/value of the unknown mean $\theta$, given the sample ${y}=$ $\left(y_{1}, \ldots, y_{N}\right)^{\prime} .$ To that end, we need two ingredients: a likelihood function and a prior for the parameter $\theta$.
 
-One simple model for this measurement problem is the normal model:
+The prior represents all the information that the investigator has. Choosing an appropriate prior is large topic that depends on the application. For now we assume that the investigator's prior is also normal.
 
-$$\left(y_{n} \mid \theta \right) \sim \mathcal{N}\left(\mu, \sigma^{2}\right), \quad n=1, \ldots, N$$
+$$\theta \sim \mathcal{N}\left(\theta_{0}, \sigma_{0}^{2}\right)$$
 
-where the variance $\sigma^{2}$ is assumed to be known. Then, the model defines the likelihood function $p({y} \mid \theta)$. 
+I.e. before their is any measurement of observations of the sample, the investigator believes that the unknown mean $\theta$ is normally distributed around a mean $\theta_0$, with variance $\sigma_0^2$ (both parameters of the prior known to/chosen by the investigator. 
 
-Since the scale of the study is small, there is uncertainty around the estimate. A reasonable prior would be
+Next, we construct a statistical model of the measurement of the variable, which will yield the likelihood function:
 
-$$\theta \sim \mathcal{N}\left(\mu_{0}, \tau_{0}^{2}\right)$$
-
-where both $\mu_{0}$ and $\sigma_{0}^{2}$ are known. **Note**: this is a distribution around our unknown parameter $\theta$. Our prior distribution is normal with these specific parameters. 
+$$\left(y_{n} \mid \theta \right) \sim \mathcal{N}\left(\theta, \sigma^{2}\right), \quad n=1, \ldots, N$$
 
 Relevant information about $\theta$ is summarized by posterior distribution, which can be obtained by Bayes' theorem:
 
@@ -267,6 +275,9 @@ $$p(\theta \mid {y})=\frac{p(\theta) p({y} \mid \theta)}{p({y})}$$
 It turns out that $p(\theta | y)$ is a Gaussian distribution. We will now try and show this. The derivation can get a bit messy, but the logic is important. If you have done mathematical statistics at any stage you will feel right at home! 😉
 
 """
+
+# ╔═╡ ac7228e4-2c8c-46f6-b457-35de691c2106
+
 
 # ╔═╡ 5d97bab1-346d-4edd-bc5e-bc6b1a510912
 md"""
@@ -291,7 +302,7 @@ p(\theta \mid {y}) &=\prod_{n=1}^{N}\left(2 \pi \sigma^{2}\right)^{-\frac{1}{2}}
 
 Similarly, the prior density $p(\theta)$ is given by
 
-$$p(\theta)=\left(2 \pi \sigma_{0}^{2}\right)^{-\frac{1}{2}} \mathrm{e}^{-\frac{1}{2 \tau_{0}^{2}}\left(\theta-\mu_{0}\right)^{2}}$$
+$$p(\theta)=\left(2 \pi \tau_{0}^{2}\right)^{-\frac{1}{2}} \mathrm{e}^{-\frac{1}{2 \tau_{0}^{2}}\left(\theta-\mu_{0}\right)^{2}}$$
 
 Remember the assumption that we made about the distribution for the prior density in the previous section. 
 
@@ -398,6 +409,9 @@ df = DataFrame(id = [1, 2], height_μ = [165, 175], height_σ = [4, 2])
 # ╔═╡ 01607a33-ad7e-4fab-b5cf-8ddf20a69a52
 md" The population mean and standard deviation for the male height in South Africa are given as follows, "
 
+# ╔═╡ 03c23816-26cb-40c5-a494-b3793d3cb3e2
+
+
 # ╔═╡ aac22072-c3f2-4b66-bf3f-3dbf967fe6f9
 pop_μ = 171 # Population mean
 
@@ -490,6 +504,9 @@ begin
 	StatsPlots.density!(g_hat, lw = 2, color = :black, legend = false)
 end
 
+# ╔═╡ 4fc77158-b0b6-4f53-8d0f-c13dd2320314
+
+
 # ╔═╡ 5bf3c91c-cac2-4259-85eb-d798b296355e
 md" ### Gaussian with unknown $\mu$ and $\sigma^{2}$ "
 
@@ -518,6 +535,9 @@ begin
 	plot!(x₁, y₁, z, linetype=:surface, legend=false, color=:ice, alpha = 0.8)
 	
 end
+
+# ╔═╡ c0d3fb47-db65-4e0d-a12d-ff63a2a85dab
+"I don't know if Julia can do it so easily, but i like showing these graphs for a circular domain, and then use a sharply correlated pair of variables."
 
 # ╔═╡ a793de54-cb93-4127-944b-30d23dbd8ff5
 md""" #### Marginalisation """
@@ -2333,8 +2353,10 @@ version = "0.9.1+5"
 # ╟─db39d95e-81c8-4a40-942c-6507d2f08274
 # ╟─675dfafa-46cb-44b8-bd7b-55395100e1ca
 # ╟─2e83e207-2405-44f4-a5d9-13dd69b741a9
-# ╟─961747f8-c884-43bf-941d-4545fb4510e6
+# ╠═961747f8-c884-43bf-941d-4545fb4510e6
 # ╠═e3f722c1-739f-45b4-8fbf-db07e9483d92
+# ╠═8330bede-028b-4c29-909c-6ed3244a0133
+# ╠═b4f15335-7a6c-4814-9007-77f69d79d39d
 # ╠═59df263a-a284-40b2-8d9d-bb34fbf13b3a
 # ╠═16b216ff-81ed-481a-896b-4ddf2cd139f6
 # ╠═6b5886d8-d783-4cbc-9a8c-286b741cb16f
@@ -2344,7 +2366,7 @@ version = "0.9.1+5"
 # ╠═e57f06bd-941b-422a-91e6-004f92ef4b4f
 # ╠═4dfbbd9f-0f34-4b7c-a018-b89df5a81dfe
 # ╠═aac33160-18d2-4d0e-87c9-1eb9dc363c88
-# ╟─9d1a94ac-7ca2-4c8c-a801-021fd2cfc90e
+# ╠═9d1a94ac-7ca2-4c8c-a801-021fd2cfc90e
 # ╟─880792b2-02b7-444e-a787-d02ee685ee72
 # ╟─309c4a9b-cd46-43ed-8a59-001057549fc4
 # ╟─963e30cf-16af-44bf-b28e-f7ea4fe96dcc
@@ -2355,17 +2377,19 @@ version = "0.9.1+5"
 # ╟─3ef808e6-c49a-4c25-befe-d7bfd502ff64
 # ╠═ceaaccf2-ae65-4731-afc9-f6763bc2b3a1
 # ╟─040c011f-1653-446d-8641-824dc82162eb
-# ╟─e4730930-c3cd-4a01-a4d9-420bd15004ad
+# ╠═e4730930-c3cd-4a01-a4d9-420bd15004ad
 # ╟─f82ce58d-f292-4ecd-86ae-06d4fa79bcd4
-# ╟─8ffaa0dc-36f8-49da-9742-74db90c6d5a8
+# ╠═8ffaa0dc-36f8-49da-9742-74db90c6d5a8
+# ╠═ac7228e4-2c8c-46f6-b457-35de691c2106
 # ╟─5d97bab1-346d-4edd-bc5e-bc6b1a510912
-# ╟─39d705ff-4540-4103-ae10-694d5b64e82b
+# ╠═39d705ff-4540-4103-ae10-694d5b64e82b
 # ╟─f5184e69-55c6-4688-8b0e-d543a07be97b
 # ╟─3b2e280f-d83a-4f1c-86bb-1397b95210cb
 # ╟─9741e08b-3f54-49d7-8db0-3125f4f90d3c
 # ╟─e99e1925-6219-4bf2-b743-bb2ea725dfcd
 # ╠═0fc998e7-d824-412b-a138-b626ba118904
 # ╟─01607a33-ad7e-4fab-b5cf-8ddf20a69a52
+# ╠═03c23816-26cb-40c5-a494-b3793d3cb3e2
 # ╠═aac22072-c3f2-4b66-bf3f-3dbf967fe6f9
 # ╠═ef4ccb39-cb95-43a5-a2d8-39efb1a66197
 # ╠═2af6f4a8-7b64-405f-ab2e-e77a2699ceb2
@@ -2387,9 +2411,11 @@ version = "0.9.1+5"
 # ╠═ec119ee9-ef16-475c-8a42-0fa5e46d1434
 # ╠═3db81fbb-31c3-416e-92d0-258f2d4d8cd5
 # ╟─8973afa7-2325-42f4-8e14-28aa090448d6
+# ╠═4fc77158-b0b6-4f53-8d0f-c13dd2320314
 # ╟─5bf3c91c-cac2-4259-85eb-d798b296355e
 # ╟─9781d63d-23ed-4d43-8446-9a495c31e85d
 # ╠═0c5f78a2-7fbd-4455-a7dd-24766bf78d90
+# ╠═c0d3fb47-db65-4e0d-a12d-ff63a2a85dab
 # ╟─a793de54-cb93-4127-944b-30d23dbd8ff5
 # ╟─b31d550f-3cdf-44ba-b1e6-116cfe84c1c4
 # ╠═679c11cf-97fd-4cab-b12d-52a2b1166402
